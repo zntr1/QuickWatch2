@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -72,7 +73,10 @@ namespace QuickWatch2
 
         private void button5_Click(object sender, EventArgs e)
         {
-            Application.Exit();
+            notifyIcon1.ShowBalloonTip(500);
+            WindowState = FormWindowState.Minimized;
+            ShowInTaskbar = false;
+
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -102,6 +106,77 @@ namespace QuickWatch2
         {
             mouseDown = true;
             lastLocation = e.Location;
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            WindowState = FormWindowState.Minimized;
+        }
+
+        private void toolStripMenuItem2_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private async void toolStripTextBox1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter){
+                // gegen Beeps und autoclose
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+
+                if (toolStripTextBox1.Text == "")
+                { return; }
+                   
+
+                HtmlWeb web = new HtmlWeb();
+                var doc = await Task.Factory.StartNew(() => web.Load(@"https://bs.to/serie-alphabet"));
+                var nodes = doc.DocumentNode.SelectNodes("//*[@id=\"seriesContainer\"]//div");
+                foreach (var node in nodes)
+                {
+                    if (node.InnerText.ToLower().Contains(toolStripTextBox1.Text.ToLower()))
+                    {
+
+                        var innerHtmlString = node.InnerHtml;
+                        innerHtmlString = innerHtmlString.Replace("<li>", "");
+                        innerHtmlString = innerHtmlString.Replace("</li>", "");
+                        innerHtmlString = innerHtmlString.Replace("<ul>", "");
+                        innerHtmlString = innerHtmlString.Replace("</ul>", "");
+                        innerHtmlString = innerHtmlString.Replace("<a href=\"", "");
+
+                        var innerHtmlList = innerHtmlString.Split('\n').ToList();
+
+                        foreach (var rowInformation in innerHtmlList)
+                        {
+                            if (!rowInformation.ToLower().Contains(toolStripTextBox1.Text.ToLower()))
+                            {
+                                continue;
+                            }
+                            var rowInfoList = rowInformation.Split('"').ToList();
+                            if (rowInfoList.Count < 2)
+                            {
+                                continue;
+                            }
+
+                            var link = rowInfoList.ElementAt(0).Trim();
+                            link = "www.bs.to/" + link;
+
+                            Process.Start(link);
+                            toolStripTextBox1.Clear();
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void notifyIcon1_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left){
+                WindowState = FormWindowState.Normal;
+                ShowInTaskbar = true;
+            }
+            
         }
     }
 }
